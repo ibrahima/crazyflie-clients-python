@@ -41,6 +41,12 @@ from cflib.crazyflie import Crazyflie
 import logging
 logging.basicConfig(level=logging.ERROR)
 
+THRUST_MIN = 20000
+THRUST_MAX = 50000
+PITCH_TRIM = 3.0
+ROLL_TRIM = 0.0
+HOVER_TIME = 5.0
+
 class MotorRampExample:
     """Example that connects to a Crazyflie and ramps the motors up/down and
     the disconnects"""
@@ -83,18 +89,23 @@ class MotorRampExample:
     def _ramp_motors(self):
         thrust_mult = 1
         thrust_step = 500
-        thrust = 20000
-        pitch = 0
-        roll = 0
+        thrust = THRUST_MIN
+        pitch = PITCH_TRIM
+        roll = ROLL_TRIM
         yawrate = 0
 
         #Unlock startup thrust protection
         self._cf.commander.send_setpoint(0, 0, 0, 0)
 
-        while thrust >= 20000:
+        while thrust >= THRUST_MIN:
             self._cf.commander.send_setpoint(roll, pitch, yawrate, thrust)
             time.sleep(0.1)
-            if thrust >= 25000:
+            if thrust >= THRUST_MAX:
+                hover = 0
+                while hover < HOVER_TIME:
+                    self._cf.commander.send_setpoint(roll, pitch, yawrate, thrust)
+                    time.sleep(0.1)
+                    hover = hover + 0.1
                 thrust_mult = -1
             thrust += thrust_step * thrust_mult
         self._cf.commander.send_setpoint(0, 0, 0, 0)
